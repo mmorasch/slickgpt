@@ -6,9 +6,7 @@
 	import ChatInput from '$lib/ChatInput.svelte';
 	import Chat from '$lib/Chat.svelte';
 	import { estimateChatCost } from '$misc/openai';
-	import type {
-		ChatMessage
-	} from '$misc/shared';
+	import type { ChatMessage } from '$misc/shared';
 	import PriceButton from '$lib/PriceButton.svelte';
 	import Datapoint from '$lib/Datapoint.svelte';
 
@@ -48,12 +46,14 @@
 </script>
 
 {#if chat}
-	<div class="border-2 border-black mt-4 flex items-center mx-auto justify-center">
-		<PriceButton>&#60; 600</PriceButton>
-		<Datapoint />
-		<PriceButton>&#62; 600</PriceButton>
+	<div class="flex flex-col h-screen justify-between">
+		<div class="border-2 border-black mt-4 flex items-center mx-auto justify-center">
+			<PriceButton>&#60; 600</PriceButton>
+			<Datapoint />
+			<PriceButton>&#62; 600</PriceButton>
+		</div>
+		<div class="mb-auto" />
+		<Chat {slug} on:editMessage={handleEditMessage} />
+		<ChatInput {slug} chatCost={cost} bind:this={chatInput} />
 	</div>
-	<Chat {slug} on:editMessage={handleEditMessage} />
-
-	<ChatInput {slug} chatCost={cost} bind:this={chatInput} />
 {/if}
