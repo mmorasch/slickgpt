@@ -19,7 +19,7 @@
 
 	const lessThan = 'less';
 	const greaterThan = 'greater';
-	const maxRounds = 5;
+	const maxRounds = 3;
 	let currentRound = 1;
 	let score = 0;
 	let predictionPossible: boolean = true;
@@ -77,7 +77,7 @@
 
 	function next_datapoint_handler() {
 		if (currentRound == maxRounds) {
-			goto('/')
+			goto(`/end?score=${score}`)
 		} else {
 			currentRound++;
 			reset_chat_handler();
