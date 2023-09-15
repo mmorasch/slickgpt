@@ -1,30 +1,45 @@
 import type { IChat } from './michiStores';
 import settings from './settings';
+import type { IDatapoint } from './types';
 
 export default {
   xai: {
     datapoint: {
-      get: () => fetch(settings.BACKEND + 'datapoint')
-    },
-    expert: {
-      get: (datapoint_id: string) => fetch(settings.BACKEND + `expert/${datapoint_id}`)
-    },
-    prediction: {
-      get: () => fetch(settings.BACKEND + `prediction/0`)
-    },
-    threshold: {
-      get: () => fetch(settings.BACKEND + `threshold`)
-    },
-    start_prompt: {
-      get: (slug: string, prediction: "0" | "1") => fetch(settings.BACKEND + `start_prompt/${slug}?prediction=${prediction}`)
-    },
-    message: {
-      post: (slug: string, chat: IChat) => fetch(settings.BACKEND + `message/${slug}`, {
+      post: (slug: string, score: string) => fetch(settings.BACKEND + slug + '/datapoint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(chat)
+        body: JSON.stringify({
+          score
+        })
+      })
+    },
+    start_prompt: {
+      post: (slug: string, prediction: "0" | "1", datapoint: IDatapoint, score: string) => fetch(settings.BACKEND + slug + '/start_prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          datapoint,
+          prediction,
+          score
+        })
+
+      })
+    },
+    message: {
+      post: (slug: string, chat: IChat, datapoint: IDatapoint, score: string) => fetch(settings.BACKEND + `message/${slug}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages: chat.messages,
+          datapoint,
+          score
+        })
       })
     }
   }

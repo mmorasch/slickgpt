@@ -19,7 +19,7 @@
 
 	const lessThan = 'less';
 	const greaterThan = 'greater';
-	const maxRounds = 3;
+	const maxRounds = 5;
 	let currentRound = 1;
 	let userScore = 0;
 	let expertScore = 0;
@@ -28,12 +28,13 @@
 	let new_msg = '';
 	let datapoint_promise: Promise<IDatapoint>;
 
-	function send_handler() {
+	async function send_handler() {
 		if (new_msg === '') return;
 		console.log('send_handler');
 		chatStore.addMessage(slug, { role: 'user', message: new_msg });
+		const datapoint = await datapoint_promise;
 		const response = backend.xai.message
-			.post(slug, $chatStore[slug])
+			.post(slug, $chatStore[slug], datapoint, userScore.toString())
 			.then((res) => {
 				return res.json();
 			})
@@ -50,12 +51,14 @@
 			if (!predictionPossible) return;
 
 			predictionPossible = false;
+			const datapoint = await datapoint_promise;
 
 			const isUserPredictionCorrect: boolean = await (async () => {
-				const { threshold, prediction } = await datapoint_promise;
 				return (
-					(prediction_user === 'less' && Number(prediction) < Number(threshold)) ||
-					(prediction_user === 'greater' && Number(prediction) > Number(threshold))
+					(prediction_user === 'less' &&
+						Number(datapoint.prediction) < Number(datapoint.threshold)) ||
+					(prediction_user === 'greater' &&
+						Number(datapoint.prediction) > Number(datapoint.threshold))
 				);
 			})();
 			if (isUserPredictionCorrect) {
@@ -63,17 +66,23 @@
 			}
 
 			const isExpertPredictionCorrect: boolean = await (async () => {
-				const { threshold, expert_opinion, prediction } = await datapoint_promise;
 				return (
-					(Number(expert_opinion) === 0 && Number(prediction) < Number(threshold)) ||
-					(Number(expert_opinion) === 1 && Number(prediction) > Number(threshold))
+					(Number(datapoint.expert_opinion) === 0 &&
+						Number(datapoint.prediction) < Number(datapoint.threshold)) ||
+					(Number(datapoint.expert_opinion) === 1 &&
+						Number(datapoint.prediction) > Number(datapoint.threshold))
 				);
 			})();
 			if (isExpertPredictionCorrect) {
 				expertScore++;
 			}
 
-			const res = await backend.xai.start_prompt.get(slug, prediction_user === 'less' ? '0' : '1');
+			const res = await backend.xai.start_prompt.post(
+				slug,
+				prediction_user === 'less' ? '0' : '1',
+				datapoint,
+				userScore.toString()
+			);
 			const res_p = await res.json();
 
 			for (let i = 0; i < res_p.messages.length; i++) {
@@ -100,14 +109,14 @@
 		} else {
 			currentRound++;
 			reset_chat_handler();
-			datapoint_promise = backend.xai.datapoint.get().then((res) => {
+			datapoint_promise = backend.xai.datapoint.post(slug, userScore.toString()).then((res) => {
 				return res.json();
 			});
 		}
 	}
 
 	onMount(async () => {
-		datapoint_promise = backend.xai.datapoint.get().then((res) => {
+		datapoint_promise = backend.xai.datapoint.post(slug, userScore.toString()).then((res) => {
 			return res.json();
 		});
 	});
