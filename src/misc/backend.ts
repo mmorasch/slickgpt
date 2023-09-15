@@ -10,7 +10,13 @@ export default {
       get: (datapoint_id: string) => fetch(settings.BACKEND + `expert/${datapoint_id}`)
     },
     prediction: {
-      get: (datapoint_id: string) => fetch(settings.BACKEND + `prediction/${datapoint_id}`)
+      get: () => fetch(settings.BACKEND + `prediction/0`)
+    },
+    threshold: {
+      get: () => fetch(settings.BACKEND + `threshold`)
+    },
+    start_prompt: {
+      get: (slug: string, prediction: "0" | "1") => fetch(settings.BACKEND + `start_prompt/${slug}?prediction=${prediction}`)
     },
     message: {
       post: (slug: string, chat: IChat) => fetch(settings.BACKEND + `message/${slug}`, {

@@ -6,5 +6,7 @@
 </script>
 
 {#each messages as message}
-	<MichiMessage {message} />
+	{#if message.role !== 'system'}
+		<MichiMessage {message} />
+	{/if}
 {/each}

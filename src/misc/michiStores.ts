@@ -12,6 +12,7 @@ export interface IChat {
 
 export interface IChatStore extends Writable<{ [key: string]: IChat }> {
   addMessage(slug: string, message: IChatMessage): void;
+  clear(slug: string): void;
 }
 const _chatStore: Writable<{ [key: string]: IChat }> = localStorageStore('chatStore', {});
 
@@ -29,6 +30,21 @@ export const chatStore: IChatStore = {
       return {
         ...chatStore,
         [slug]: chat
+      }
+    });
+  },
+  clear: (slug: string) => {
+    _chatStore.update((chatStore) => {
+      const chat = chatStore[slug];
+      if (!chat) {
+        return chatStore;
+      }
+      return {
+        ...chatStore,
+        [slug]: {
+          ...chat,
+          messages: []
+        }
       }
     });
   }
