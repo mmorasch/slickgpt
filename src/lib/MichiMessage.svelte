@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { IChatMessage } from '$misc/michiStores';
+	import snarkdown from 'snarkdown';
 
 	export let message: IChatMessage = {
 		role: 'user',
@@ -9,7 +10,7 @@
 
 <div class="flex items-end mb-2.5 {message.role === 'user' ? 'right-msg' : 'left-msg'}">
 	<div class="msg-bubble max-w-md p-2.5 rounded-2xl">
-		{@html message.message}
+		{@html snarkdown(message.message)}
 	</div>
 </div>
 

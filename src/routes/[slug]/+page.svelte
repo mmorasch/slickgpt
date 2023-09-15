@@ -124,24 +124,26 @@
 
 {#await datapoint_promise then datapoint}
 	<div class="grid grid-cols-4">
-		<div class="col-start-1 col-end-4">
+		<div class="col-start-1 col-end-2">
 			<div class="flex flex-col h-screen justify-between">
-				<div class="mt-4 flex items-center mx-auto justify-center">
-					<PriceButton text={'< €'} {datapoint} on:click={prediction_handler(lessThan)} />
-					<Datapoint source={datapoint} />
+				<div class="mt-4 items-center mx-auto justify-center">
+					<Datapoint source={datapoint} /><br>
+					<PriceButton text={'< €'} {datapoint} on:click={prediction_handler(lessThan)} /> <br> <br>
 					<PriceButton text={`> €`} {datapoint} on:click={prediction_handler(greaterThan)} />
 				</div>
 				<div class="mb-auto" />
-				{#if userPrediction}
-					<div
-						transition:fade={{ delay: 150, duration: 300 }}
-						class="mb-4 scroll-smooth gap-4 overflow-x-auto"
-					>
-						<MichiChat messages={chat.messages} />
-						<MichiChatInput on:send={send_handler} bind:msg={new_msg} />
-					</div>
-				{/if}
 			</div>
+		</div>
+		<div class="col-start-2 col-end-4 h-full">
+			{#if userPrediction}
+				<div
+					transition:fade={{ delay: 150, duration: 300 }}
+					class="mb-4 scroll-smooth gap-4 overflow-x-auto h-full overflow-y-scroll"
+				>
+					<MichiChat messages={chat.messages} />
+					<MichiChatInput on:send={send_handler} bind:msg={new_msg} />
+				</div>
+			{/if}
 		</div>
 		<div class="grid grid-cols-2 w-full place-items-center">
 			<span class="divider-vertical h-full" />
