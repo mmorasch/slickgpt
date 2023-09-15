@@ -30,7 +30,7 @@ export default {
       })
     },
     message: {
-      post: (slug: string, chat: IChat, datapoint: IDatapoint, score: string) => fetch(settings.BACKEND + `message/${slug}`, {
+      post: (slug: string, chat: IChat, datapoint: IDatapoint, score: string) => fetch(settings.BACKEND + slug + `/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
