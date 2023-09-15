@@ -41,7 +41,7 @@
 </script>
 
 {#if chat}
-	<div class="flex flex-col container h-full mx-auto px-4 md:px-8" style="justify-content: end">
+	<div class="flex flex-col container mx-auto px-4 md:px-8" style="justify-content: end">
 		<slot name="additional-content-top" />
 
 		<div class="flex flex-col max-w-4xl md:mx-auto space-y-6 pt-6">
@@ -52,7 +52,7 @@
 			{#if $isLoadingAnswerStore}
 				<div class="place-self-start">
 					<div class="p-5 rounded-2xl variant-ghost-tertiary rounded-tl-none">
-						{@html snarkdown($enhancedLiveAnswerStore.content)}
+						{@html snarkdown($enhancedLiveAnswerStore.content || '')}
 					</div>
 				</div>
 			{/if}

@@ -1,264 +1,175 @@
 <script lang="ts">
-	import { onDestroy, onMount, tick } from 'svelte';
-	import { modalStore, type ModalSettings } from '@skeletonlabs/skeleton';
-	import hljs from 'highlight.js';
-	import { XMark } from '@inqling/svelte-icons/heroicon-24-solid';
-	import { Trash, Cog6Tooth, Share } from '@inqling/svelte-icons/heroicon-24-outline';
 	import type { PageData } from './$types';
+	import { chatStore } from '$misc/michiStores';
+	import PriceButton from '$lib/PriceButton.svelte';
+	import Datapoint from '$lib/Datapoint.svelte';
+	import MichiChat from '$lib/MichiChat.svelte';
+	import MichiChatInput from '$lib/MichiChatInput.svelte';
+	import { fade } from 'svelte/transition';
+	import backend from '$misc/backend';
+	import { onMount } from 'svelte';
+	import type { IDatapoint } from '$misc/types';
+	import { ProgressBar } from '@skeletonlabs/skeleton';
 	import { goto } from '$app/navigation';
-	import { chatStore, isLoadingAnswerStore, settingsStore } from '$misc/stores';
-	import Toolbar from '$lib/Toolbar.svelte';
-	import ChatInput from '$lib/ChatInput.svelte';
-	import Chat from '$lib/Chat.svelte';
-	import HintMessage from '$lib/HintMessage.svelte';
-	import TokenCost from '$lib/TokenCost.svelte';
-	import { countTokens, estimateChatCost } from '$misc/openai';
-	import {
-		canSuggestTitle,
-		createNewChat,
-		showModalComponent,
-		showToast,
-		suggestChatTitle,
-		track,
-		type ChatMessage
-	} from '$misc/shared';
-	import snarkdown from 'snarkdown';
 
 	export let data: PageData;
 
 	$: ({ slug } = data);
 	$: chat = $chatStore[slug];
-	$: cost = chat ? estimateChatCost(chat) : null;
-	$: hasContext = chat?.contextMessage?.content?.length || false;
-	$: hasStopSequence = chat?.settings.stop?.length || false;
 
-	let chatInput: ChatInput;
+	const lessThan = 'less';
+	const greaterThan = 'greater';
+	const maxRounds = 5;
+	let currentRound = 1;
+	let userScore = 0;
+	let expertScore = 0;
+	let predictionPossible: boolean = true;
+	let userPrediction: 'less' | 'greater' | null = null;
+	let new_msg = '';
+	let datapoint_promise: Promise<IDatapoint>;
 
-	onMount(async () => {
-		await highlightCode();
-	});
+	async function send_handler() {
+		if (new_msg === '') return;
+		console.log('send_handler');
+		chatStore.addMessage(slug, { role: 'user', message: new_msg });
+		const datapoint = await datapoint_promise;
+		const response = backend.xai.message
+			.post(slug, $chatStore[slug], datapoint, userScore.toString())
+			.then((res) => {
+				return res.json();
+			})
+			.then((res) => {
+				console.log(res);
+				chatStore.addMessage(slug, { role: 'assistant', message: res.messages[0] });
+			});
 
-	const unsubscribeChatStore = chatStore.subscribe(async () => {
-		await highlightCode();
-	});
-
-	const unsubscribeisLoadingAnswerStore = isLoadingAnswerStore.subscribe(async () => {
-		await highlightCode();
-	});
-
-	onDestroy(() => {
-		unsubscribeChatStore();
-		unsubscribeisLoadingAnswerStore();
-	});
-
-	async function highlightCode() {
-		await tick();
-		hljs.highlightAll();
+		new_msg = '';
 	}
 
-	function showConfirmDeleteModal() {
-		const modal: ModalSettings = {
-			type: 'confirm',
-			title: 'Please confirm',
-			body: 'Are you sure you want to delete this chat?',
-			response: (result: boolean) => {
-				if (result) {
-					deleteChat();
-				}
+	function prediction_handler(prediction_user: 'less' | 'greater') {
+		return async () => {
+			if (!predictionPossible) return;
+
+			predictionPossible = false;
+			const datapoint = await datapoint_promise;
+
+			const isUserPredictionCorrect: boolean = await (async () => {
+				return (
+					(prediction_user === 'less' &&
+						Number(datapoint.prediction) < Number(datapoint.threshold)) ||
+					(prediction_user === 'greater' &&
+						Number(datapoint.prediction) > Number(datapoint.threshold))
+				);
+			})();
+			if (isUserPredictionCorrect) {
+				userScore++;
 			}
+
+			const isExpertPredictionCorrect: boolean = await (async () => {
+				return (
+					(Number(datapoint.expert_opinion) === 0 &&
+						Number(datapoint.prediction) < Number(datapoint.threshold)) ||
+					(Number(datapoint.expert_opinion) === 1 &&
+						Number(datapoint.prediction) > Number(datapoint.threshold))
+				);
+			})();
+			if (isExpertPredictionCorrect) {
+				expertScore++;
+			}
+
+			const res = await backend.xai.start_prompt.post(
+				slug,
+				prediction_user === 'less' ? '0' : '1',
+				datapoint,
+				userScore.toString()
+			);
+			const res_p = await res.json();
+
+			for (let i = 0; i < res_p.messages.length; i++) {
+				chatStore.addMessage(slug, res_p.messages[i]);
+			}
+
+			userPrediction = prediction_user;
 		};
-		modalStore.trigger(modal);
 	}
 
-	const handleChatShared = (savedSlug: boolean) => {
-		// sharing might have updated the slug of this chat
-		// so we are either already on that page, or we go there
-		if (savedSlug) {
-			goto(`/${savedSlug}`);
-		}
-	};
-
-	function deleteChat(dontTrack = false) {
-		if (!dontTrack) {
-			track('deleteChat');
-		}
-		chatStore.deleteChat(slug);
-		goto('/');
+	function clear_chat() {
+		chatStore.clear(slug);
 	}
 
-	async function handleCloseChat() {
-		// untouched => discard
-		if (chat.title === slug && !chat.contextMessage?.content && chat.messages.length === 0) {
-			showToast('Empty chat was discarded automatically', 'secondary');
-			deleteChat(true);
-		}
+	function reset_chat_handler() {
+		clear_chat();
+		predictionPossible = true;
+		userPrediction = null;
+	}
 
-		// already has a title
-		if (chat.title !== slug || !canSuggestTitle(chat)) {
-			goto('/');
-			return;
-		}
-
-		// has no title
-		if ($settingsStore.useTitleSuggestions) {
-			if ($settingsStore.openAiApiKey) {
-				const title = await suggestChatTitle(chat, $settingsStore.openAiApiKey);
-				chatStore.updateChat(slug, { title });
-				showToast(`Chat title set to: '${title}'`, 'secondary');
-			}
-			goto('/');
+	function next_datapoint_handler() {
+		if (currentRound == maxRounds) {
+			goto(`/end?score=${userScore}&expert=${expertScore}`);
 		} else {
-			showModalComponent('SuggestTitleModal', { slug }, () => {
-				// see https://www.reddit.com/r/sveltejs/comments/10o7tpu/sveltekit_issue_goto_not_working_on_ios/
-				// await tick() doesn't fix it, hence setTimeout
-				setTimeout(() => goto('/'), 0);
+			currentRound++;
+			reset_chat_handler();
+			datapoint_promise = backend.xai.datapoint.post(slug, userScore.toString()).then((res) => {
+				return res.json();
 			});
 		}
 	}
 
-	function handleRenameChat(event: CustomEvent<string>) {
-		chatStore.updateChat(slug, { title: event.detail });
-	}
-
-	function handleEditMessage(event: CustomEvent<ChatMessage>) {
-		chatInput.editMessage(event.detail);
-	}
+	onMount(async () => {
+		datapoint_promise = backend.xai.datapoint.post(slug, userScore.toString()).then((res) => {
+			return res.json();
+		});
+	});
 </script>
 
-{#if chat}
-	<Toolbar
-		{slug}
-		title={chat.title}
-		on:closeChat={handleCloseChat}
-		on:renameChat={handleRenameChat}
-	>
-		<svelte:fragment slot="actions">
-			<!-- Delete -->
-			<button class="btn btn-sm variant-ghost-error" on:click={showConfirmDeleteModal}>
-				<Trash class="w-6 h-6" />
-			</button>
-
-			<!-- Settings -->
-			<span class="relative inline-flex">
-				<button
-					class="btn btn-sm variant-ghost-warning"
-					on:click={() => showModalComponent('SettingsModal', { slug })}
-				>
-					<Cog6Tooth class="w-6 h-6" />
-				</button>
-				{#if !$settingsStore.openAiApiKey}
-					<span class="relative flex h-3 w-3">
-						<span
-							style="left: -10px;"
-							class="animate-ping absolute inline-flex h-full w-full rounded-full bg-error-400 opacity-75"
-						/>
-						<span
-							style="left: -10px;"
-							class="relative inline-flex rounded-full h-3 w-3 bg-error-500"
-						/>
-					</span>
-				{/if}
-			</span>
-
-			<!-- Share -->
-			<span
-				class="relative inline-flex"
-				style={!$settingsStore.openAiApiKey ? 'margin-left: -4px;' : ''}
-			>
-				<button
-					disabled={!chat.contextMessage.content?.length && !chat.messages?.length}
-					class="btn btn-sm inline-flex variant-ghost-tertiary"
-					on:click={() => showModalComponent('ShareModal', { slug }, handleChatShared)}
-				>
-					<Share class="w-6 h-6" />
-				</button>
-				{#if chat.updateToken}
-					<span class="relative flex h-3 w-3">
-						<span
-							style="left: -10px;"
-							class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary-400 opacity-75"
-						/>
-						<span
-							style="left: -10px;"
-							class="relative inline-flex rounded-full h-3 w-3 bg-tertiary-500"
-						/>
-					</span>
-				{/if}
-			</span>
-		</svelte:fragment>
-	</Toolbar>
-
-	<Chat {slug} on:editMessage={handleEditMessage}>
-		<svelte:fragment slot="additional-content-top">
-			<!-- Language hint -->
-			{#if !$settingsStore.hideLanguageHint}
-				<HintMessage title="Did you know?" variantClass="variant-ghost-surface">
-					<p>
-						ChatGPT understands various languages. You can just ask your questions in German if you
-						like.
-					</p>
-					<svelte:fragment slot="actions">
-						<button class="btn btn-sm" on:click={() => ($settingsStore.hideLanguageHint = true)}>
-							<XMark class="w-6 h-6" />
-						</button>
-					</svelte:fragment>
-				</HintMessage>
-			{/if}
-
-			<!-- Context -->
-			<HintMessage
-				title="Context"
-				variantClass="variant-ghost-tertiary"
-				actionClass="grid h-full"
-				omitAlertActionsClass={true}
-			>
-				{#if hasContext}
-					<p>
-						{@html snarkdown(chat.contextMessage.content)}
-					</p>
-				{/if}
-				{#if hasStopSequence}
-					<p class="text-xs text-slate-500">
-						Stop:
-						{Array.isArray(chat.settings.stop) ? chat.settings.stop.join(', ') : chat.settings.stop}
-					</p>
-				{/if}
-				{#if !hasContext && !hasStopSequence}
-					<p>
-						You can give the AI an initial <strong>context</strong> for your chat which greatly
-						changes the way it will behave during the conversation. Use a
-						<strong>stop sequence</strong> to limit the answers given by ChatGPT.
-					</p>
-				{/if}
-
-				<svelte:fragment slot="actions">
-					{#if hasContext}
-						<!-- Tokens -->
-						<div class="justify-self-end mb-2">
-							<TokenCost tokens={countTokens(chat.contextMessage)} />
-						</div>
-					{/if}
-					<div class="flex flex-row md:flex-col space-x-2 space-y-2">
-						<button
-							class="btn self-center variant-filled-primary"
-							on:click={() => showModalComponent('ContextModal', { slug })}
-						>
-							Edit
-						</button>
-						{#if hasContext}
-							<button
-								class="btn self-center variant-filled-tertiary"
-								on:click={() =>
-									createNewChat({ context: chat.contextMessage.content, settings: chat.settings })}
-							>
-								New Chat
-							</button>
-						{/if}
+{#await datapoint_promise then datapoint}
+	<div class="grid grid-cols-4">
+		<div class="col-start-1 col-end-4">
+			<div class="flex flex-col h-screen justify-between">
+				<div class="mt-4 flex items-center mx-auto justify-center">
+					<PriceButton text={'< €'} {datapoint} on:click={prediction_handler(lessThan)} />
+					<Datapoint source={datapoint} />
+					<PriceButton text={`> €`} {datapoint} on:click={prediction_handler(greaterThan)} />
+				</div>
+				<div class="mb-auto" />
+				{#if userPrediction}
+					<div
+						transition:fade={{ delay: 150, duration: 300 }}
+						class="mb-4 scroll-smooth gap-4 overflow-x-auto"
+					>
+						<MichiChat messages={chat.messages} />
+						<MichiChatInput on:send={send_handler} bind:msg={new_msg} />
 					</div>
-				</svelte:fragment>
-			</HintMessage>
-		</svelte:fragment>
-	</Chat>
-
-	<ChatInput {slug} chatCost={cost} bind:this={chatInput} />
-{/if}
+				{/if}
+			</div>
+		</div>
+		<div class="grid grid-cols-2 w-full place-items-center">
+			<span class="divider-vertical h-full" />
+			<div class="mr-5 flex flex-col h-screen justify-between">
+				<div class="mt-8">
+					<p class="mt-4">Round: {currentRound} / {maxRounds}</p>
+					<ProgressBar label="Progress Bar" value={currentRound} max={maxRounds} />
+					<p class="mt-4">Score: {userScore} / {maxRounds}</p>
+					<ProgressBar label="Progress Bar" value={userScore} max={maxRounds} />
+				</div>
+				{#if userPrediction}
+					<div class="mt-16 mb-auto">
+						<p>The expert predicted: {Number(datapoint.expert_opinion) === 0 ? 'less' : 'more'}</p>
+					</div>
+					<div class="mb-8 place-items-center">
+						<!-- <button
+							class="btn btn-xl variant-ghost-primary"
+							type="button"
+							on:click={reset_chat_handler}>Reset Chat</button
+						> -->
+						<button
+							class="btn btn-xl variant-ghost-primary"
+							type="button"
+							on:click={next_datapoint_handler}>Next Datapoint</button
+						>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/await}

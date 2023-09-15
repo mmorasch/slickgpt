@@ -51,15 +51,14 @@
 		"@inqling/svelte-icons": "^3.3.2",
 		"@vercel/analytics": "^1.0.1",
 		"common-tags": "^1.8.2",
-		"firebase": "^9.23.0",
 		"gpt3-tokenizer": "^1.1.5",
 		"highlight.js": "^11.8.0",
 		"javascript-time-ago": "^2.5.9",
-		"openai": "^3.3.0",
+		"openai": "3.3.0",
 		"random-word-slugs": "^0.1.7",
 		"snarkdown": "^2.0.0",
 		"sse.js": "^0.6.1",
 		"svelte-legos": "^0.2.1",
-		"uuid": "^9.0.0"
+		"uuid": "9.0.1"
 	}
 }
