@@ -148,11 +148,11 @@
 						<p>The expert predicted: {Number(datapoint.expert_opinion) === 0 ? 'less' : 'more'}</p>
 					</div>
 					<div class="mb-8 place-items-center">
-						<button
+						<!-- <button
 							class="btn btn-xl variant-ghost-primary"
 							type="button"
 							on:click={reset_chat_handler}>Reset Chat</button
-						>
+						> -->
 						<button
 							class="btn btn-xl variant-ghost-primary"
 							type="button"
