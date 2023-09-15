@@ -128,9 +128,9 @@
 			<div class="flex flex-col h-screen justify-between">
 				<div class="mt-4 items-center mx-auto justify-center">
 					<Datapoint source={datapoint} /><br>
-					<p class="text-center mb-2">Deine Schätzung</p>
-					<PriceButton text={'weniger als €'} {datapoint} on:click={prediction_handler(lessThan)} /> <br> <br>
-					<PriceButton text={`mehr als €`} {datapoint} on:click={prediction_handler(greaterThan)} />
+					<p class="text-center mb-2">Schätze die Warmmiete</p>
+					<PriceButton text={'unter €'} {datapoint} on:click={prediction_handler(lessThan)} /> <br> <br>
+					<PriceButton text={`über €`} {datapoint} on:click={prediction_handler(greaterThan)} />
 				</div>
 				<div class="mb-auto" />
 			</div>
@@ -158,7 +158,7 @@
 				</div>
 				{#if userPrediction}
 					<div class="mt-16 mb-auto">
-						<p>The expert predicted: {Number(datapoint.expert_opinion) === 0 ? 'less' : 'more'}</p>
+						<p>Der Experte tippte:<br> {Number(datapoint.expert_opinion) === 0 ? 'unter' : 'über'} {datapoint.threshold} €</p>
 					</div>
 					<div class="mb-8 place-items-center">
 						<!-- <button
@@ -169,7 +169,7 @@
 						<button
 							class="btn btn-xl variant-ghost-primary"
 							type="button"
-							on:click={next_datapoint_handler}>Next Datapoint</button
+							on:click={next_datapoint_handler}>Nächstes Apartment</button
 						>
 					</div>
 				{/if}

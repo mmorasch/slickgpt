@@ -25,6 +25,12 @@
 		}
 	}
 
+
+    // Append "m²" to the value of "Wohnraum"
+    if (orderedSource.hasOwnProperty('Wohnraum')) {
+        orderedSource['Wohnraum'] = `${orderedSource['Wohnraum']} m²`;
+    }
+
 	const sourceData: { position: number; attribute: string; value: string }[] = [];
 	for (const [key, value] of Object.entries(orderedSource)) {
 		if (key === 'expert_opinion' || key === 'threshold' || key === 'prediction' || key === 'id')
