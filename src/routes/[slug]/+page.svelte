@@ -21,7 +21,8 @@
 	const greaterThan = 'greater';
 	const maxRounds = 3;
 	let currentRound = 1;
-	let score = 0;
+	let userScore = 0;
+	let expertScore = 0;
 	let predictionPossible: boolean = true;
 	let userPrediction: 'less' | 'greater' | null = null;
 	let new_msg = '';
@@ -47,20 +48,38 @@
 	function prediction_handler(prediction_user: 'less' | 'greater') {
 		return async () => {
 			if (!predictionPossible) return;
+
 			predictionPossible = false;
-			const isPredictionCorrect: boolean = await (async () => {
-				const {threshold, prediction} = await datapoint_promise
-				return (prediction_user === 'less' && Number(prediction) < Number(threshold)) || (prediction_user === 'greater' && Number(prediction) > Number(threshold))
-			})()
-			if (isPredictionCorrect) {
-				score++;
+
+			const isUserPredictionCorrect: boolean = await (async () => {
+				const { threshold, prediction } = await datapoint_promise;
+				return (
+					(prediction_user === 'less' && Number(prediction) < Number(threshold)) ||
+					(prediction_user === 'greater' && Number(prediction) > Number(threshold))
+				);
+			})();
+			if (isUserPredictionCorrect) {
+				userScore++;
 			}
+
+			const isExpertPredictionCorrect: boolean = await (async () => {
+				const { threshold, expert_opinion, prediction } = await datapoint_promise;
+				return (
+					(Number(expert_opinion) === 0 && Number(prediction) < Number(threshold)) ||
+					(Number(expert_opinion) === 1 && Number(prediction) > Number(threshold))
+				);
+			})();
+			if (isExpertPredictionCorrect) {
+				expertScore++;
+			}
+
 			const res = await backend.xai.start_prompt.get(slug, prediction_user === 'less' ? '0' : '1');
 			const res_p = await res.json();
-			console.log(res_p);
+
 			for (let i = 0; i < res_p.messages.length; i++) {
 				chatStore.addMessage(slug, res_p.messages[i]);
 			}
+
 			userPrediction = prediction_user;
 		};
 	}
@@ -77,7 +96,7 @@
 
 	function next_datapoint_handler() {
 		if (currentRound == maxRounds) {
-			goto(`/end?score=${score}`)
+			goto(`/end?score=${userScore}&expert=${expertScore}`);
 		} else {
 			currentRound++;
 			reset_chat_handler();
@@ -121,11 +140,13 @@
 				<div class="mt-8">
 					<p class="mt-4">Round: {currentRound} / {maxRounds}</p>
 					<ProgressBar label="Progress Bar" value={currentRound} max={maxRounds} />
-					<p class="mt-4">Score: {score} / {maxRounds}</p>
-					<ProgressBar label="Progress Bar" value={score} max={maxRounds} />
+					<p class="mt-4">Score: {userScore} / {maxRounds}</p>
+					<ProgressBar label="Progress Bar" value={userScore} max={maxRounds} />
 				</div>
 				{#if userPrediction}
-					<div class="mt-16 mb-auto"><p>expert answer</p></div>
+					<div class="mt-16 mb-auto">
+						<p>The expert predicted: {Number(datapoint.expert_opinion) === 0 ? 'less' : 'more'}</p>
+					</div>
 					<div class="mb-8 place-items-center">
 						<button
 							class="btn btn-xl variant-ghost-primary"
