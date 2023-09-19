@@ -31,32 +31,17 @@
         z-index: 1000;
         border-radius: 10px;
     }
-
-    button.variant-filled-primary {
-        padding: 10px 10px;
-        font-size: 0.7rem;
-    }
-
-    textarea {
-        flex-grow: 1; /* This lets the textarea grow to occupy available space */
-    }
-
-    body {
-    padding-bottom: 60px;  /* Keep this if needed */
-}
-
-
 </style>
 
 <div class="input-group input-group-divider rounded-container-token">
     <textarea
         bind:value={msg}
-        class="bg-transparent border-0 ring-0"
+        class="bg-transparent border-0 ring-0 flex-grow"
         name="prompt"
         id="prompt"
         placeholder="Stelle eine Frage..."
         rows="1"
         on:keydown={handleKeydown}
     />
-    <button class="variant-filled-primary" on:click={send}>Senden</button>
+    <button class="btn variant-filled-primary" type="button" on:click={send}>Senden</button>
 </div>
