@@ -128,8 +128,9 @@
 			<div class="flex flex-col h-screen justify-between">
 				<div class="mt-4 items-center mx-auto justify-center">
 					<Datapoint source={datapoint} /><br>
-					<PriceButton text={'< €'} {datapoint} on:click={prediction_handler(lessThan)} /> <br> <br>
-					<PriceButton text={`> €`} {datapoint} on:click={prediction_handler(greaterThan)} />
+					<p class="text-center mb-2">Schätze die Warmmiete</p>
+					<PriceButton text={'unter €'} {datapoint} on:click={prediction_handler(lessThan)} /> <br> <br>
+					<PriceButton text={`über €`} {datapoint} on:click={prediction_handler(greaterThan)} />
 				</div>
 				<div class="mb-auto" />
 			</div>
@@ -149,14 +150,15 @@
 			<span class="divider-vertical h-full" />
 			<div class="mr-5 flex flex-col h-screen justify-between">
 				<div class="mt-8">
-					<p class="mt-4">Round: {currentRound} / {maxRounds}</p>
+				    <p class="text-center mb-2">Spielstand</p>
+					<p class="mt-4">Runde: {currentRound} / {maxRounds}</p>
 					<ProgressBar label="Progress Bar" value={currentRound} max={maxRounds} />
-					<p class="mt-4">Score: {userScore} / {maxRounds}</p>
+					<p class="mt-4">Punkte: {userScore} / {maxRounds}</p>
 					<ProgressBar label="Progress Bar" value={userScore} max={maxRounds} />
 				</div>
 				{#if userPrediction}
-					<div class="mt-16">
-						<p>The expert predicted: {Number(datapoint.expert_opinion) === 0 ? 'less' : 'more'}</p>
+					<div class="mt-16 mb-auto">
+						<p>Der Experte tippte:<br> {Number(datapoint.expert_opinion) === 0 ? 'unter' : 'über'} {datapoint.threshold} €</p>
 					</div>
 					<div class="mb-8 mt-16 place-items-center">
 						<!-- <button
@@ -167,7 +169,7 @@
 						<button
 							class="btn btn-xl variant-ghost-primary"
 							type="button"
-							on:click={next_datapoint_handler}>Next Datapoint</button
+							on:click={next_datapoint_handler}>Nächstes Apartment</button
 						>
 					</div>
 				{/if}
