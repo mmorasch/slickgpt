@@ -9,7 +9,7 @@
 	<h1>Danke für deine Teilnahme!</h1>
 	<br />
 	<h3>
-		Du hast einen Score von {data.score} erreicht, während der Makler einen Score von {data.expert} erreicht
+		Du hast {data.score} Punkte erreicht, während der Experte {data.expert} Punkte erreicht
 		hat.
 	</h3>
 	<br />
