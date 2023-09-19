@@ -134,11 +134,11 @@
 				<div class="mb-auto" />
 			</div>
 		</div>
-		<div class="col-start-2 col-end-4 h-full">
+		<div class="col-start-2 col-end-4 h-full overflow-y-scroll">
 			{#if userPrediction}
 				<div
 					transition:fade={{ delay: 150, duration: 300 }}
-					class="mb-4 scroll-smooth gap-4 overflow-x-auto h-full overflow-y-scroll"
+					class="mb-4 scroll-smooth gap-4 overflow-x-auto"
 				>
 					<MichiChat messages={chat.messages} />
 					<MichiChatInput on:send={send_handler} bind:msg={new_msg} />
@@ -155,10 +155,10 @@
 					<ProgressBar label="Progress Bar" value={userScore} max={maxRounds} />
 				</div>
 				{#if userPrediction}
-					<div class="mt-16 mb-auto">
+					<div class="mt-16">
 						<p>The expert predicted: {Number(datapoint.expert_opinion) === 0 ? 'less' : 'more'}</p>
 					</div>
-					<div class="mb-8 place-items-center">
+					<div class="mb-8 mt-16 place-items-center">
 						<!-- <button
 							class="btn btn-xl variant-ghost-primary"
 							type="button"
